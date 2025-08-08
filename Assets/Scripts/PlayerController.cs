@@ -2,15 +2,13 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private GameObject ball;
     private Rigidbody ballRb;
     private bool isDragging = false;
-    private Vector3 startPoint;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        ballRb = ball.GetComponent<Rigidbody>();
+        ballRb = GetComponent<Rigidbody>();
     }
 
     // Update is called once per frame
@@ -22,10 +20,9 @@ public class PlayerController : MonoBehaviour
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                if (hit.collider.gameObject == ball)
+                if (hit.collider.gameObject == gameObject)
                 {
                     isDragging = true;
-                    Debug.Log("Start dragging from: " + startPoint);
                 }
             }
         }
@@ -47,9 +44,20 @@ public class PlayerController : MonoBehaviour
         Vector3 worldPosition = Camera.main.ScreenToWorldPoint(mousePosition);
         Vector3 startPoint;
         Quaternion rotation;
-        ball.GetComponent<Transform>().GetPositionAndRotation(out startPoint, out rotation);
+        transform.GetPositionAndRotation(out startPoint, out rotation);
         Vector3 dir = (startPoint - worldPosition).normalized;
         dir.y = 0; // Only horizontal direction
         return dir;
+    }
+
+    public void OnCollisionEnter(Collision collision)
+    {
+        Debug.Log("Collision detected with: " + collision.gameObject.name);
+        if (collision.gameObject.CompareTag("Hole"))
+        {
+            // todo Add UI and game over logic
+            Debug.Log("You hit the hole");
+            Destroy(gameObject);
+        }
     }
 }
