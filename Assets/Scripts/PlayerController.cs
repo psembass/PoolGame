@@ -10,6 +10,8 @@ public class PlayerController : MonoBehaviour
     private float dotDistance = 0.5f;
     [SerializeField]
     private float dotMaxDistance = 6f;
+    [SerializeField]
+    private float forceMax = 10f;
     // todo Common object pool for all objects?
     private List<GameObject> dots = new List<GameObject>();
 
@@ -49,23 +51,18 @@ public class PlayerController : MonoBehaviour
         // Show dots to indicate strength and direction
         UpdateDots();
 
-        // On mouse release, stop dragging
+        // On mouse release hit the ball
         if (Input.GetMouseButtonUp(0) && isDragging)
         {
             isDragging = false;
-            Vector3 dir = GetHitDirection();
+            Vector3 worldPosition = GetMouseWorldPosition();
+            Vector3 startPoint = transform.position;
+            float distance = Mathf.Min(Vector3.Distance(startPoint, worldPosition), dotMaxDistance);
+            float force = forceMax * (distance / dotMaxDistance);
+            Vector3 dir = (startPoint - worldPosition).normalized;
             Debug.Log("Add force to direction: " + dir);
-            ballRb.AddForce(dir * 10f, ForceMode.Impulse);
+            ballRb.AddForce(dir * force, ForceMode.Impulse);
         }
-    }
-
-    private Vector3 GetHitDirection()
-    {
-        Vector3 worldPosition = GetMouseWorldPosition();
-        Vector3 startPoint = transform.position;
-        Vector3 dir = (startPoint - worldPosition).normalized;
-        dir.y = 0; // Only horizontal direction
-        return dir;
     }
 
     private Vector3 GetMouseWorldPosition()
