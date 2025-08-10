@@ -116,15 +116,4 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-
-    public void OnCollisionEnter(Collision collision)
-    {
-        Debug.Log("Collision detected with: " + collision.gameObject.name);
-        if (collision.gameObject.CompareTag("Hole"))
-        {
-            // todo Add UI and game over logic
-            Debug.Log("You hit the hole");
-            Destroy(gameObject);
-        }
-    }
 }

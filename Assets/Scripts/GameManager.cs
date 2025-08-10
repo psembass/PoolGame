@@ -11,6 +11,10 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI gameOverText;
     [SerializeField]
     private Button restartButton;
+    [SerializeField]
+    private TextMeshProUGUI winText;
+    [SerializeField]
+    private int scoreToWin = 10;
 
     private int score = 0;
 
@@ -18,6 +22,10 @@ public class GameManager : MonoBehaviour
     {
         score += points;
         scoreText.text = "Score: " + score;
+        if (score == scoreToWin)
+        {
+            WinGame();
+        }
     }
 
     public void GameOver()
@@ -30,5 +38,11 @@ public class GameManager : MonoBehaviour
     {
         // Reload scene
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void WinGame()
+    {
+        winText.gameObject.SetActive(true);
+        restartButton.gameObject.SetActive(true);
     }
 }
