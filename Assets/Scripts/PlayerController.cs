@@ -12,6 +12,9 @@ public class PlayerController : MonoBehaviour
     private float dotMaxDistance = 6f;
     [SerializeField]
     private float forceMax = 10f;
+    [SerializeField]
+    private List<Camera> cameras;
+    private Camera currentCamera;
     // todo Common object pool for all objects?
     private List<GameObject> dots = new List<GameObject>();
 
@@ -30,6 +33,7 @@ public class PlayerController : MonoBehaviour
             newDot.SetActive(false);
             dots.Add(newDot);
         }
+        currentCamera = Camera.main;
     }
 
     // Update is called once per frame
@@ -38,7 +42,7 @@ public class PlayerController : MonoBehaviour
         // On mouse down, begin drag
         if (Input.GetMouseButtonDown(0))
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 if (hit.collider.gameObject == gameObject)
@@ -63,15 +67,24 @@ public class PlayerController : MonoBehaviour
             Debug.Log("Add force to direction: " + dir);
             ballRb.AddForce(dir * force, ForceMode.Impulse);
         }
+
+        // Switch camera on key press
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            SwitchCamera();
+        }
     }
 
     private Vector3 GetMouseWorldPosition()
     {
-        // todo replace with raycast for 3D camera?
-        Vector3 mousePosition = Input.mousePosition;
-        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(mousePosition);
-        worldPosition.y = transform.localScale.y / 2; // At center of the ball
-        return worldPosition;
+        Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+        Plane groundPlane = new Plane(Vector3.up, new Vector3(0, transform.localScale.y / 2, 0));
+        float rayDistance;
+        if (groundPlane.Raycast(ray, out rayDistance))
+        {
+            return ray.GetPoint(rayDistance);
+        }
+        return Vector3.zero;
     }
 
     private void UpdateDots()
@@ -115,5 +128,19 @@ public class PlayerController : MonoBehaviour
                 return;
             }
         }
+    }
+
+    private void SwitchCamera()
+    {
+        if (cameras.Count == 0) return;
+        // Disable current camera
+        if (currentCamera != null)
+        {
+            currentCamera.gameObject.SetActive(false);
+        }
+        // Get next camera in the list
+        int nextIndex = (cameras.IndexOf(currentCamera) + 1) % cameras.Count;
+        currentCamera = cameras[nextIndex];
+        currentCamera.gameObject.SetActive(true);
     }
 }

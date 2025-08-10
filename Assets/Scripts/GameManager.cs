@@ -14,9 +14,19 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI winText;
     [SerializeField]
+    private TextMeshProUGUI tutorialText;
+    [SerializeField]
     private int scoreToWin = 10;
 
     private int score = 0;
+
+    void Update()
+    {
+        if (tutorialText.gameObject.activeInHierarchy && Input.GetMouseButtonDown(0))
+        {
+            tutorialText.gameObject.SetActive(false);
+        }
+    }
 
     public void AddScore(int points)
     {
