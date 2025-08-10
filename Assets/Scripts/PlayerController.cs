@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerController : MonoBehaviour
 {
@@ -8,6 +10,8 @@ public class PlayerController : MonoBehaviour
     private float dotDistance = 0.5f;
     [SerializeField]
     private float dotMaxDistance = 6f;
+    // todo Common object pool for all objects?
+    private List<GameObject> dots = new List<GameObject>();
 
     private Rigidbody ballRb;
     private bool isDragging = false;
@@ -16,6 +20,14 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         ballRb = GetComponent<Rigidbody>();
+        // Init dots pool
+        int dotsCount = (int) (dotMaxDistance / (dotDistance + dot.transform.localScale.x));
+        for (int i = 0; i < dotsCount; i++)
+        {
+            GameObject newDot = Instantiate(dot, transform.position, Quaternion.identity, transform);
+            newDot.SetActive(false);
+            dots.Add(newDot);
+        }
     }
 
     // Update is called once per frame
@@ -67,11 +79,10 @@ public class PlayerController : MonoBehaviour
 
     private void UpdateDots()
     {
-        // Clear existing dots
-        // todo Replace with object pool
-        foreach (Transform child in transform)
+        // Hide existing dots
+        foreach (GameObject child in dots)
         {
-            Destroy(child.gameObject);
+            child.SetActive(false);
         }
         if (isDragging)
         {
@@ -88,10 +99,23 @@ public class PlayerController : MonoBehaviour
             float maxDistance = Mathf.Min(Vector3.Distance(startPoint, mousePosition), dotMaxDistance);
             while (distance < maxDistance)
             {
-                Instantiate(dot, dotPosition, Quaternion.identity, transform);
+                ShowDot(dotPosition);
                 dotPosition = dotPosition - dir * dotDistance;
                 dotPosition.y = transform.localScale.y / 2; // At center of the ball
                 distance = Vector3.Distance(startPoint, dotPosition);
+            }
+        }
+    }
+
+    private void ShowDot(Vector3 dotPosition)
+    {
+        foreach (GameObject dot in dots)
+        {
+            if (!dot.activeInHierarchy)
+            {
+                dot.transform.position = dotPosition;
+                dot.SetActive(true);
+                return;
             }
         }
     }
