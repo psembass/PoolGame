@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -17,14 +18,44 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI tutorialText;
     [SerializeField]
     private int scoreToWin = 10;
+    [SerializeField]
+    private float stopThrehold = 0.01f;
+    private PlayerController playerController;
+    private List<Rigidbody> balls = new List<Rigidbody>();
 
     private int score = 0;
+
+    void Start()
+    {
+        playerController = FindFirstObjectByType<PlayerController>();
+        playerController.SetCanHit(true);
+        // load balls
+        GameObject[] ballObjs = GameObject.FindGameObjectsWithTag("Ball");
+        foreach (GameObject ballObj in ballObjs)
+        {
+            Rigidbody ballRb = ballObj.GetComponent<Rigidbody>();
+            if (ballRb != null)
+            {
+                balls.Add(ballRb);
+            }
+        }
+    }
 
     void Update()
     {
         if (tutorialText.gameObject.activeInHierarchy && Input.GetMouseButtonDown(0))
         {
             tutorialText.gameObject.SetActive(false);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        // Check if balls are moving
+        if (!AreBallsMoving() && !playerController.IsMoving())
+        {
+            Debug.Log("All balls stopped, enabling player control.");
+            playerController.SetCanHit(true);
         }
     }
 
@@ -54,5 +85,17 @@ public class GameManager : MonoBehaviour
     {
         winText.gameObject.SetActive(true);
         restartButton.gameObject.SetActive(true);
+    }
+
+    private bool AreBallsMoving()
+    {
+        foreach (Rigidbody ball in balls)
+        {
+            if (ball != null && (ball.linearVelocity.magnitude > stopThrehold && !ball.IsSleeping()))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

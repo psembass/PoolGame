@@ -15,6 +15,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private List<Camera> cameras;
     private Camera currentCamera;
+    private Vector3 hitForce = Vector3.zero;
+    private bool canHit = true;
+    private bool forceApplied = false;
     // todo Common object pool for all objects?
     private List<GameObject> dots = new List<GameObject>();
 
@@ -40,7 +43,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // On mouse down, begin drag
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && canHit)
         {
             Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
@@ -64,8 +67,7 @@ public class PlayerController : MonoBehaviour
             float distance = Mathf.Min(Vector3.Distance(startPoint, worldPosition), dotMaxDistance);
             float force = forceMax * (distance / dotMaxDistance);
             Vector3 dir = (startPoint - worldPosition).normalized;
-            Debug.Log("Add force to direction: " + dir);
-            ballRb.AddForce(dir * force, ForceMode.Impulse);
+            hitForce = dir * force;
         }
 
         // Switch camera on key press
@@ -73,6 +75,29 @@ public class PlayerController : MonoBehaviour
         {
             SwitchCamera();
         }
+    }
+
+    private void FixedUpdate()
+    {
+        forceApplied = false;
+        if (hitForce != Vector3.zero)
+        {
+            ballRb.AddForce(hitForce, ForceMode.Impulse);
+            hitForce = Vector3.zero; // Reset hit force after applying
+            canHit = false; // Disable hitting until all balls are stopped
+            forceApplied = true; // velocity will be zero until next frame
+            Debug.Log("Player made a hit");
+        }
+    }
+
+    public void SetCanHit(bool canHit)
+    {
+        this.canHit = canHit;
+    }
+
+    public bool IsMoving()
+    {
+        return forceApplied || ballRb.linearVelocity.sqrMagnitude > 0.01f;
     }
 
     private Vector3 GetMouseWorldPosition()
