@@ -14,14 +14,14 @@ public class HoleController : MonoBehaviour
         Debug.Log("Collision detected with: " + collision.gameObject.name);
         if (collision.gameObject.CompareTag("Player"))
         {
-            Debug.Log("Game Over");
-            gameManager.GameOver();
+            Debug.Log("Reset white ball");
+            gameManager.ResetWhiteBall();
         }
         else if (collision.gameObject.CompareTag("Ball"))
         {
             Debug.Log("Ball entered the hole");
             gameManager.AddScore(1);
+            Destroy(collision.gameObject);
         }
-        Destroy(collision.gameObject);
     }
 }

@@ -16,7 +16,7 @@ public class PlayerController : MonoBehaviour
     private List<Camera> cameras;
     private Camera currentCamera;
     private Vector3 hitForce = Vector3.zero;
-    private bool canHit = true;
+    public bool CanHit {get; set;} = true;
     private bool forceApplied = false;
     // todo Common object pool for all objects?
     private List<GameObject> dots = new List<GameObject>();
@@ -43,7 +43,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // On mouse down, begin drag
-        if (Input.GetMouseButtonDown(0) && canHit)
+        if (Input.GetMouseButtonDown(0) && CanHit)
         {
             Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
@@ -84,20 +84,34 @@ public class PlayerController : MonoBehaviour
         {
             ballRb.AddForce(hitForce, ForceMode.Impulse);
             hitForce = Vector3.zero; // Reset hit force after applying
-            canHit = false; // Disable hitting until all balls are stopped
+            CanHit = false; // Disable hitting until all balls are stopped
             forceApplied = true; // velocity will be zero until next frame
             Debug.Log("Player made a hit");
         }
     }
 
-    public void SetCanHit(bool canHit)
-    {
-        this.canHit = canHit;
-    }
-
     public bool IsMoving()
     {
-        return forceApplied || ballRb.linearVelocity.sqrMagnitude > 0.01f;
+        bool isMoving = forceApplied || ballRb.linearVelocity.sqrMagnitude > 0.01f;
+        if (!isMoving)
+        {
+            // Stop if movement velocity is below threshold
+            StopMovement();
+        }
+        return isMoving;
+    }
+
+    public void ResetPosition()
+    {
+        transform.position = new Vector3(-10, 0.5f, 4);
+        StopMovement();
+    }
+
+    private void StopMovement()
+    {
+        ballRb.linearVelocity = Vector3.zero;
+        ballRb.angularVelocity = Vector3.zero;
+        ballRb.Sleep();
     }
 
     private Vector3 GetMouseWorldPosition()
