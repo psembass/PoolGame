@@ -11,11 +11,11 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private float dotMaxDistance = 6f;
     [SerializeField]
-    private float forceMax = 10f;
+    public float forceMax = 10f;
     [SerializeField]
     private List<Camera> cameras;
     private Camera currentCamera;
-    private Vector3 hitForce = Vector3.zero;
+    public Vector3 hitForce { get; set; } = Vector3.zero;
     public bool CanHit {get; set;} = true;
     private bool forceApplied = false;
     // todo Common object pool for all objects?
@@ -77,11 +77,12 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    void FixedUpdate()
     {
         forceApplied = false;
         if (hitForce != Vector3.zero)
         {
+            Debug.Log("Applying hit force: " + hitForce);
             ballRb.AddForce(hitForce, ForceMode.Impulse);
             hitForce = Vector3.zero; // Reset hit force after applying
             CanHit = false; // Disable hitting until all balls are stopped

@@ -6973,6 +6973,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Obstacle
       objectReference: {fileID: 0}
+    - target: {fileID: 4169126122326879018, guid: 9c9ce184f743fa44f937b90faf4c35f3, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4916682891248137818, guid: 9c9ce184f743fa44f937b90faf4c35f3, type: 3}
       propertyPath: m_LocalScale.z
       value: 14.1

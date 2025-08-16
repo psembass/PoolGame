@@ -19,20 +19,26 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private TextMeshProUGUI tutorialText;
     [SerializeField]
-    private int scoreToWin = 10;
-    [SerializeField]
     private float stopThrehold = 0.01f;
+
     private PlayerController playerController;
     private List<Rigidbody> balls = new List<Rigidbody>();
+    private GameObject[] holes;
+
+    private MainManager mainManager;
+    private string gameMode = "PlayerVsCpu";
+    private string player2Name = "CPU";
 
     private int currentPlayer = 1;
-
     private int scorePlayer1 = 0;
     private int scorePlayer2 = 0;
     private bool scoreAdded = false;
 
     void Start()
     {
+        // load main manager
+        mainManager = FindFirstObjectByType<MainManager>();
+        // load player
         playerController = FindFirstObjectByType<PlayerController>();
         playerController.CanHit = true;
         // load balls
@@ -45,10 +51,21 @@ public class GameManager : MonoBehaviour
                 balls.Add(ballRb);
             }
         }
+        // load holes
+        holes = GameObject.FindGameObjectsWithTag("Hole");
         // init UI
-        tutorialText.text = "Player " + currentPlayer + " \n Drag the white ball with mouse to shoot";
+        gameMode = mainManager.gameMode;
+        if (gameMode == "PlayerVsCpu")
+        {
+            player2Name = "CPU";
+        }
+        else if (gameMode == "PlayerVsPlayer")
+        {
+            player2Name = "Player 2";
+        }
+        tutorialText.text = "Player 1 \n Drag the white ball with mouse to shoot";
         scoreText.text = "Player 1: " + scorePlayer1;
-        scoreText2.text = "Player 2: " + scorePlayer2;
+        scoreText2.text = player2Name + ": " + scorePlayer2;
     }
 
     void Update()
@@ -73,9 +90,16 @@ public class GameManager : MonoBehaviour
             {
                 // Next hit for the current player
                 scoreAdded = false;
-                tutorialText.text = "Player " + currentPlayer + " \n Take another shot";
-                tutorialText.gameObject.SetActive(true);
-                playerController.CanHit = true;
+                if (gameMode == "PlayerVsCpu" && currentPlayer == 2)
+                {
+                    CpuTurn();
+                }
+                else
+                {
+                    tutorialText.text = "Player " + currentPlayer + " \n Take another shot";
+                    tutorialText.gameObject.SetActive(true);
+                    playerController.CanHit = true;
+                }
             }
         }
     }
@@ -89,21 +113,18 @@ public class GameManager : MonoBehaviour
         } else if (currentPlayer == 2)
         {
             scorePlayer2 += points;
-            scoreText2.text = "Player 2: " + scorePlayer2;
+            scoreText2.text = player2Name + ": " + scorePlayer2;
         }
         scoreAdded = true;
 
         // Check endgame condition
-        int ballsLeft = scoreToWin - scorePlayer1 - scorePlayer2;
-        if (scorePlayer1 > scorePlayer2 + ballsLeft || scorePlayer2 > scorePlayer1 + ballsLeft)
+        int ballsLeft = 10 - scorePlayer1 - scorePlayer2;
+        if (scorePlayer1 > scorePlayer2 + ballsLeft || scorePlayer2 > scorePlayer1 + ballsLeft || ballsLeft == 0)
         {
-            WinGame();
-        }
-        else if (ballsLeft == 0)
-        {
-            NobodyWins();
+            EndGame();
         }
     }
+
     public void ResetWhiteBall()
     {
         playerController.ResetPosition();
@@ -113,36 +134,46 @@ public class GameManager : MonoBehaviour
 
     private void SwitchPlayer()
     {
-        currentPlayer = currentPlayer == 1 ? 2 : 1;
-        tutorialText.text = "Player " + currentPlayer + "\n Your turn";
-        tutorialText.gameObject.SetActive(true);
-        playerController.CanHit = true;
         scoreAdded = false;
-    }
-
-    public void GameOver()
-    {
-        gameOverText.gameObject.SetActive(true);
-        restartButton.gameObject.SetActive(true);
+        currentPlayer = currentPlayer == 1 ? 2 : 1;
+        if (gameMode == "PlayerVsCpu" && currentPlayer == 2)
+        {
+            CpuTurn();
+        }
+        else
+        {
+            tutorialText.text = "Player " + currentPlayer + "\n Your turn";
+            tutorialText.gameObject.SetActive(true);
+            playerController.CanHit = true;
+        }
     }
 
     public void RestartGame()
     {
         // Reload scene
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        // Continue game
+        Time.timeScale = 1f;
     }
 
-    public void WinGame()
+    public void EndGame()
     {
-        winText.text = "Player " + currentPlayer + " wins!";
-        winText.gameObject.SetActive(true);
-        Time.timeScale = 0f; // Pause the game
-        restartButton.gameObject.SetActive(true);
-    }
-
-    public void NobodyWins()
-    {
-        winText.text = "Draw!";
+        if (scorePlayer1 == scorePlayer2)
+        {
+            winText.text = "Draw!";
+        } 
+        else
+        {
+            if (gameMode == "PlayerVsCpu")
+            {
+                winText.text = currentPlayer == 1 ? "You won!" : "You lose!";
+            }
+            else if (gameMode == "PlayerVsPlayer")
+            {
+                winText.text = "Player " + currentPlayer + " wins!";
+            }
+        }
+        tutorialText.gameObject.SetActive(false);
         winText.gameObject.SetActive(true);
         Time.timeScale = 0f; // Pause the game
         restartButton.gameObject.SetActive(true);
@@ -158,5 +189,49 @@ public class GameManager : MonoBehaviour
             }
         }
         return false;
+    }
+
+    private void CpuTurn()
+    {
+        tutorialText.text = "CPU is taking a shot...";
+        tutorialText.gameObject.SetActive(true);
+        // Find optimal direction to hit
+        for (int i = 0; i < holes.Length; i++)
+        {
+            // Raycast from each hole to the white ball
+            Vector3 holeToBall = playerController.transform.position - holes[i].transform.position;
+            float searchRadius = 0.5f;
+
+            if (Physics.SphereCast(holes[i].transform.position,
+                                searchRadius,
+                                holeToBall.normalized,
+                                out RaycastHit hit))
+            {
+                if (hit.collider.CompareTag("Ball"))
+                {
+                    Debug.Log("CPU smart hit to: " + hit.collider.name);
+                    CpuHitPostion(hit.collider.transform.position);
+                    return;
+                }
+            }
+        }
+        // Hit random ball
+        for (int i = 0; i < balls.Count; i++)
+        {
+            if (balls[i] != null)
+            {
+                Debug.Log("CPU dumb hit: " + balls[i].name);
+                CpuHitPostion(balls[i].transform.position);
+                return;
+            }
+        }
+    }
+
+    private void CpuHitPostion(Vector3 position)
+    {
+        Vector3 dir = position - playerController.transform.position;
+        float hitForce = Random.Range(20, 25);
+        playerController.hitForce = dir.normalized * hitForce;
+        return;
     }
 }
