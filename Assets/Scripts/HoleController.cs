@@ -7,6 +7,7 @@ public class HoleController : MonoBehaviour
     void Start()
     {
         gameManager = FindAnyObjectByType<GameManager>();
+        gameManager.RegisterHole(this);
     }
 
     public void OnCollisionEnter(Collision collision)

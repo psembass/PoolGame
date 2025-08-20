@@ -22,8 +22,8 @@ public class GameManager : MonoBehaviour
     private float stopThrehold = 0.01f;
 
     private PlayerController playerController;
-    private List<Rigidbody> balls = new List<Rigidbody>();
-    private GameObject[] holes;
+    private List<BallController> balls = new();
+    private List<HoleController> holes = new();
 
     private MainManager mainManager;
     private string gameMode = "PlayerVsCpu";
@@ -41,18 +41,6 @@ public class GameManager : MonoBehaviour
         // load player
         playerController = FindFirstObjectByType<PlayerController>();
         playerController.CanHit = true;
-        // load balls
-        GameObject[] ballObjs = GameObject.FindGameObjectsWithTag("Ball");
-        foreach (GameObject ballObj in ballObjs)
-        {
-            Rigidbody ballRb = ballObj.GetComponent<Rigidbody>();
-            if (ballRb != null)
-            {
-                balls.Add(ballRb);
-            }
-        }
-        // load holes
-        holes = GameObject.FindGameObjectsWithTag("Hole");
         // init UI
         gameMode = mainManager.gameMode;
         if (gameMode == "PlayerVsCpu")
@@ -179,11 +167,23 @@ public class GameManager : MonoBehaviour
         restartButton.gameObject.SetActive(true);
     }
 
+    public void RegisterBall(BallController ball)
+    {
+        balls.Add(ball);
+    }
+
+    public void RegisterHole(HoleController hole)
+    {
+        holes.Add(hole);
+    }
+
     private bool AreBallsMoving()
     {
-        foreach (Rigidbody ball in balls)
+        foreach (BallController ball in balls)
         {
-            if (ball != null && (ball.linearVelocity.magnitude > stopThrehold && !ball.IsSleeping()))
+            if (ball == null) continue; // Skip if ball is destroyed
+            Rigidbody ballRb = ball.GetComponent<Rigidbody>();
+            if (ballRb.linearVelocity.magnitude > stopThrehold && !ballRb.IsSleeping())
             {
                 return true;
             }
@@ -196,13 +196,13 @@ public class GameManager : MonoBehaviour
         tutorialText.text = "CPU is taking a shot...";
         tutorialText.gameObject.SetActive(true);
         // Find optimal direction to hit
-        for (int i = 0; i < holes.Length; i++)
+        foreach (HoleController hole in holes)
         {
             // Raycast from each hole to the white ball
-            Vector3 holeToBall = playerController.transform.position - holes[i].transform.position;
+            Vector3 holeToBall = playerController.transform.position - hole.transform.position;
             float searchRadius = 0.5f;
 
-            if (Physics.SphereCast(holes[i].transform.position,
+            if (Physics.SphereCast(hole.transform.position,
                                 searchRadius,
                                 holeToBall.normalized,
                                 out RaycastHit hit))
