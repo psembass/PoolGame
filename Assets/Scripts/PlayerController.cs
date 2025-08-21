@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Pool;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -16,26 +17,29 @@ public class PlayerController : MonoBehaviour
     private List<Camera> cameras;
     private Camera currentCamera;
     public Vector3 hitForce { get; set; } = Vector3.zero;
-    public bool CanHit {get; set;} = true;
+    public bool CanHit { get; set; } = true;
     private bool forceApplied = false;
-    // todo Common object pool for all objects?
     private List<GameObject> dots = new List<GameObject>();
+    private IObjectPool<GameObject> dotsPool;
 
     private Rigidbody ballRb;
     private bool isDragging = false;
-    
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         ballRb = GetComponent<Rigidbody>();
         // Init dots pool
-        int dotsCount = (int) (dotMaxDistance / (dotDistance + dot.transform.localScale.x));
-        for (int i = 0; i < dotsCount; i++)
-        {
-            GameObject newDot = Instantiate(dot, transform.position, Quaternion.identity, transform);
-            newDot.SetActive(false);
-            dots.Add(newDot);
-        }
+        int maxDotsCount = (int)(dotMaxDistance / (dotDistance + dot.transform.localScale.x));
+        dotsPool = new ObjectPool<GameObject>(
+            () => Instantiate(dot, transform.position, Quaternion.identity, transform),
+            dot => dot.SetActive(true),
+            dot => dot.SetActive(false),
+            dot => Destroy(dot),
+            false,
+            maxDotsCount,
+            maxDotsCount
+        );
         currentCamera = Camera.main;
     }
 
@@ -122,51 +126,49 @@ public class PlayerController : MonoBehaviour
         float rayDistance;
         if (groundPlane.Raycast(ray, out rayDistance))
         {
-            return ray.GetPoint(rayDistance);
+            Vector3 point = ray.GetPoint(rayDistance);
+            point.y = transform.localScale.y / 2; // Set y to center of the ball
+            return point;
         }
         return Vector3.zero;
     }
 
     private void UpdateDots()
     {
-        // Hide existing dots
-        foreach (GameObject child in dots)
-        {
-            child.SetActive(false);
-        }
+        int dotsNeeded = 0;
         if (isDragging)
         {
             // Where to place the dots - direction
             Vector3 mousePosition = GetMouseWorldPosition();
             Vector3 startPoint = transform.position;
             Vector3 dir = (startPoint - mousePosition).normalized;
-            // Calculate place for first dot
-            Vector3 dotPosition = startPoint - dir * (dotDistance + transform.localScale.y/2);
-            dotPosition.y = transform.localScale.y / 2; // At center of the ball
-            // Create new dots between start point and world position
-            float distance = Vector3.Distance(startPoint, dotPosition);
-            // Draw dots until we reach the mouse position or max distance
-            float maxDistance = Mathf.Min(Vector3.Distance(startPoint, mousePosition), dotMaxDistance);
-            while (distance < maxDistance)
+            Vector3 ballSurface = startPoint - dir * transform.localScale.y / 2;
+            // Count how many dots we need
+            float distance = Mathf.Min(Vector3.Distance(ballSurface, mousePosition), dotMaxDistance);
+            dotsNeeded = (int) (distance / dotDistance);
+            if (dots.Count < dotsNeeded)
             {
-                ShowDot(dotPosition);
-                dotPosition = dotPosition - dir * dotDistance;
-                dotPosition.y = transform.localScale.y / 2; // At center of the ball
-                distance = Vector3.Distance(startPoint, dotPosition);
+                while (dots.Count < dotsNeeded)
+                {
+                    // Get new dot from pool
+                    GameObject newDot = dotsPool.Get();
+                    dots.Add(newDot);
+                }
+            }
+            // Calculate place for first dot and position all dots
+            Vector3 firstDotPos = ballSurface - dir * dotDistance;
+            for (int i = 0; i < dotsNeeded; i++)
+            {
+                GameObject dotObj = dots[i];
+                dotObj.transform.position = firstDotPos - dotDistance * i * dir;
             }
         }
-    }
-
-    private void ShowDot(Vector3 dotPosition)
-    {
-        foreach (GameObject dot in dots)
+        // Release unused dots
+        for (int i = dots.Count - 1; i >= dotsNeeded; i--)
         {
-            if (!dot.activeInHierarchy)
-            {
-                dot.transform.position = dotPosition;
-                dot.SetActive(true);
-                return;
-            }
+            GameObject dotToRelease = dots[i];
+            dotsPool.Release(dotToRelease);
+            dots.RemoveAt(i);
         }
     }
 
