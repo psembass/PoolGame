@@ -2,12 +2,10 @@ using UnityEngine;
 
 public class HoleController : MonoBehaviour
 {
-    private GameManager gameManager;
 
     void Start()
     {
-        gameManager = FindAnyObjectByType<GameManager>();
-        gameManager.RegisterHole(this);
+        GameManager.Instance.RegisterHole(this);
     }
 
     public void OnCollisionEnter(Collision collision)
@@ -16,12 +14,12 @@ public class HoleController : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             Debug.Log("Reset white ball");
-            gameManager.ResetWhiteBall();
+            GameManager.Instance.ResetWhiteBall();
         }
         else if (collision.gameObject.CompareTag("Ball"))
         {
             Debug.Log("Ball entered the hole");
-            gameManager.AddScore(1);
+            GameManager.Instance.AddScore(1);
             Destroy(collision.gameObject);
         }
     }

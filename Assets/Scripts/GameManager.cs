@@ -21,6 +21,8 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private float stopThrehold = 0.01f;
 
+    public static GameManager Instance;
+
     private PlayerController playerController;
     private List<BallController> balls = new();
     private List<HoleController> holes = new();
@@ -33,6 +35,19 @@ public class GameManager : MonoBehaviour
     private int scorePlayer1 = 0;
     private int scorePlayer2 = 0;
     private bool scoreAdded = false;
+
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        } else
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // in case there will be more scenes
+        }
+    }
 
     void Start()
     {
