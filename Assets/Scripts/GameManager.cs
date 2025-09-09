@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
@@ -20,6 +21,10 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI tutorialText;
     [SerializeField]
     private float stopThrehold = 0.01f;
+    [SerializeField]
+    private InputActionAsset inputActions;
+
+    private InputAction clickAction;
 
     public static GameManager Instance;
 
@@ -52,7 +57,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         // load main manager
-        mainManager = FindFirstObjectByType<MainManager>();
+        mainManager = MainManager.Instance;
         // load player
         playerController = FindFirstObjectByType<PlayerController>();
         playerController.CanHit = true;
@@ -69,11 +74,14 @@ public class GameManager : MonoBehaviour
         tutorialText.text = "Player 1 \n Drag the white ball with mouse to shoot";
         scoreText.text = "Player 1: " + scorePlayer1;
         scoreText2.text = player2Name + ": " + scorePlayer2;
+        // init controls
+        inputActions.FindActionMap("Gameplay").Enable();
+        clickAction = inputActions.FindAction("Click");
     }
 
     void Update()
     {
-        if (tutorialText.gameObject.activeInHierarchy && Input.GetMouseButtonDown(0))
+        if (tutorialText.gameObject.activeInHierarchy && clickAction.IsPressed())
         {
             tutorialText.gameObject.SetActive(false);
         }

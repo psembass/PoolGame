@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Pool;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -15,6 +16,12 @@ public class PlayerController : MonoBehaviour
     public float forceMax = 10f;
     [SerializeField]
     private List<Camera> cameras;
+    [SerializeField]
+    private InputActionAsset inputActions;
+    private InputAction pointAction;
+    private InputAction clickAction;
+    private InputAction cameraAction;
+
     private Camera currentCamera;
     public Vector3 hitForce { get; set; } = Vector3.zero;
     public bool CanHit { get; set; } = true;
@@ -41,15 +48,25 @@ public class PlayerController : MonoBehaviour
             maxDotsCount
         );
         currentCamera = Camera.main;
+        InitControls();
+    }
+
+    void InitControls()
+    {
+        inputActions.FindActionMap("Gameplay").Enable();
+        pointAction = inputActions.FindAction("Point");
+        clickAction = inputActions.FindAction("Click");
+        cameraAction = inputActions.FindAction("Camera");
     }
 
     // Update is called once per frame
     void Update()
     {
         // On mouse down, begin drag
-        if (Input.GetMouseButtonDown(0) && CanHit)
+        if (clickAction.IsPressed() && CanHit)
         {
-            Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+            Vector2 mousePosition = pointAction.ReadValue<Vector2>();
+            Ray ray = currentCamera.ScreenPointToRay(mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 if (hit.collider.gameObject == gameObject)
@@ -63,7 +80,7 @@ public class PlayerController : MonoBehaviour
         UpdateDots();
 
         // On mouse release hit the ball
-        if (Input.GetMouseButtonUp(0) && isDragging)
+        if (!clickAction.IsPressed() && isDragging)
         {
             isDragging = false;
             Vector3 worldPosition = GetMouseWorldPosition();
@@ -75,7 +92,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // Switch camera on key press
-        if (Input.GetKeyDown(KeyCode.C))
+        if (cameraAction.WasPressedThisFrame())
         {
             SwitchCamera();
         }
@@ -121,7 +138,8 @@ public class PlayerController : MonoBehaviour
 
     private Vector3 GetMouseWorldPosition()
     {
-        Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+        Vector2 mousePosition = pointAction.ReadValue<Vector2>();
+        Ray ray = currentCamera.ScreenPointToRay(mousePosition);
         Plane groundPlane = new Plane(Vector3.up, new Vector3(0, transform.localScale.y / 2, 0));
         float rayDistance;
         if (groundPlane.Raycast(ray, out rayDistance))

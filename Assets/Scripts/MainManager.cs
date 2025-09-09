@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 public class MainManager : MonoBehaviour
 {
     public static MainManager Instance;
-    public string gameMode = "";
+    public string gameMode = "PlayerVsPlayer";
 
     private void Awake()
     {
