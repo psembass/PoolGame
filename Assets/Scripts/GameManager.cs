@@ -21,10 +21,6 @@ public class GameManager : MonoBehaviour
     private TextMeshProUGUI tutorialText;
     [SerializeField]
     private float stopThrehold = 0.01f;
-    [SerializeField]
-    private InputActionAsset inputActions;
-
-    private InputAction clickAction;
 
     public static GameManager Instance;
 
@@ -61,6 +57,8 @@ public class GameManager : MonoBehaviour
         // load player
         playerController = FindFirstObjectByType<PlayerController>();
         playerController.CanHit = true;
+        // init controls
+        playerController.inputHandler.OnClick += OnClick;
         // init UI
         gameMode = mainManager.gameMode;
         if (gameMode == "PlayerVsCpu")
@@ -74,14 +72,11 @@ public class GameManager : MonoBehaviour
         tutorialText.text = "Player 1 \n Drag the white ball with mouse to shoot";
         scoreText.text = "Player 1: " + scorePlayer1;
         scoreText2.text = player2Name + ": " + scorePlayer2;
-        // init controls
-        inputActions.FindActionMap("Gameplay").Enable();
-        clickAction = inputActions.FindAction("Click");
     }
 
-    void Update()
+    void OnClick(Vector2 postion)
     {
-        if (tutorialText.gameObject.activeInHierarchy && clickAction.IsPressed())
+        if (tutorialText.gameObject.activeInHierarchy)
         {
             tutorialText.gameObject.SetActive(false);
         }

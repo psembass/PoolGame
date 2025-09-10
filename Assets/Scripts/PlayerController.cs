@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.Pool;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -16,11 +15,6 @@ public class PlayerController : MonoBehaviour
     public float forceMax = 10f;
     [SerializeField]
     private List<Camera> cameras;
-    [SerializeField]
-    private InputActionAsset inputActions;
-    private InputAction pointAction;
-    private InputAction clickAction;
-    private InputAction cameraAction;
 
     private Camera currentCamera;
     public Vector3 hitForce { get; set; } = Vector3.zero;
@@ -28,6 +22,8 @@ public class PlayerController : MonoBehaviour
     private bool forceApplied = false;
     private List<GameObject> dots = new List<GameObject>();
     private IObjectPool<GameObject> dotsPool;
+    public InputHandler inputHandler;
+    private Vector2 cursorPosition;
 
     private Rigidbody ballRb;
     private bool isDragging = false;
@@ -48,54 +44,24 @@ public class PlayerController : MonoBehaviour
             maxDotsCount
         );
         currentCamera = Camera.main;
+        currentCamera = Camera.main; 
         InitControls();
     }
 
     void InitControls()
     {
-        inputActions.FindActionMap("Gameplay").Enable();
-        pointAction = inputActions.FindAction("Point");
-        clickAction = inputActions.FindAction("Click");
-        cameraAction = inputActions.FindAction("Camera");
+        inputHandler = GetComponent<InputHandler>();
+        inputHandler.OnCameraAction += SwitchCamera;
+        inputHandler.OnClick += OnClick;
+        inputHandler.OnClickRelease += OnClickRelease;
+        inputHandler.OnPoint += OnPointUpdate;
     }
-
+    
     // Update is called once per frame
     void Update()
     {
-        // On mouse down, begin drag
-        if (clickAction.IsPressed() && CanHit)
-        {
-            Vector2 mousePosition = pointAction.ReadValue<Vector2>();
-            Ray ray = currentCamera.ScreenPointToRay(mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                if (hit.collider.gameObject == gameObject)
-                {
-                    isDragging = true;
-                }
-            }
-        }
-
         // Show dots to indicate strength and direction
         UpdateDots();
-
-        // On mouse release hit the ball
-        if (!clickAction.IsPressed() && isDragging)
-        {
-            isDragging = false;
-            Vector3 worldPosition = GetMouseWorldPosition();
-            Vector3 startPoint = transform.position;
-            float distance = Mathf.Min(Vector3.Distance(startPoint, worldPosition), dotMaxDistance);
-            float force = forceMax * (distance / dotMaxDistance);
-            Vector3 dir = (startPoint - worldPosition).normalized;
-            hitForce = dir * force;
-        }
-
-        // Switch camera on key press
-        if (cameraAction.WasPressedThisFrame())
-        {
-            SwitchCamera();
-        }
     }
 
     void FixedUpdate()
@@ -110,6 +76,42 @@ public class PlayerController : MonoBehaviour
             forceApplied = true; // velocity will be zero until next frame
             Debug.Log("Player made a hit");
         }
+    }
+
+    void OnClick(Vector2 position)
+    {
+        // On mouse down, begin drag
+        if (CanHit)
+        {
+            Ray ray = currentCamera.ScreenPointToRay(position);
+            if (Physics.Raycast(ray, out RaycastHit hit))
+            {
+                if (hit.collider.gameObject == gameObject)
+                {
+                    isDragging = true;
+                }
+            }
+        }
+    }
+
+    void OnClickRelease(Vector2 position)
+    {
+        // On mouse release hit the ball
+        if (isDragging)
+        {
+            isDragging = false;
+            Vector3 worldPosition = GetMouseWorldPosition(position);
+            Vector3 startPoint = transform.position;
+            float distance = Mathf.Min(Vector3.Distance(startPoint, worldPosition), dotMaxDistance);
+            float force = forceMax * (distance / dotMaxDistance);
+            Vector3 dir = (startPoint - worldPosition).normalized;
+            hitForce = dir * force;
+        }
+    }
+
+    void OnPointUpdate(Vector2 position)
+    {
+        cursorPosition = position;
     }
 
     public bool IsMoving()
@@ -136,9 +138,8 @@ public class PlayerController : MonoBehaviour
         ballRb.Sleep();
     }
 
-    private Vector3 GetMouseWorldPosition()
+    private Vector3 GetMouseWorldPosition(Vector2 mousePosition)
     {
-        Vector2 mousePosition = pointAction.ReadValue<Vector2>();
         Ray ray = currentCamera.ScreenPointToRay(mousePosition);
         Plane groundPlane = new Plane(Vector3.up, new Vector3(0, transform.localScale.y / 2, 0));
         float rayDistance;
@@ -157,7 +158,7 @@ public class PlayerController : MonoBehaviour
         if (isDragging)
         {
             // Where to place the dots - direction
-            Vector3 mousePosition = GetMouseWorldPosition();
+            Vector3 mousePosition = GetMouseWorldPosition(cursorPosition);
             Vector3 startPoint = transform.position;
             Vector3 dir = (startPoint - mousePosition).normalized;
             Vector3 ballSurface = startPoint - dir * transform.localScale.y / 2;
