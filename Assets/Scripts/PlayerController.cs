@@ -43,7 +43,6 @@ public class PlayerController : MonoBehaviour
             maxDotsCount,
             maxDotsCount
         );
-        currentCamera = Camera.main;
         currentCamera = Camera.main; 
         InitControls();
     }

@@ -1,37 +1,21 @@
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
-using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField]
-    private TextMeshProUGUI scoreText;
-    [SerializeField]
-    private TextMeshProUGUI scoreText2;
-    [SerializeField]
-    private TextMeshProUGUI gameOverText;
-    [SerializeField]
-    private Button restartButton;
-    [SerializeField]
-    private TextMeshProUGUI winText;
-    [SerializeField]
-    private TextMeshProUGUI tutorialText;
     [SerializeField]
     private float stopThrehold = 0.01f;
 
     public static GameManager Instance;
 
     private PlayerController playerController;
+    private UIManager uiManager;
     private List<BallController> balls = new();
     private List<HoleController> holes = new();
 
     private MainManager mainManager;
     private string gameMode = "PlayerVsCpu";
-    private string player2Name = "CPU";
-
     private int currentPlayer = 1;
     private int scorePlayer1 = 0;
     private int scorePlayer2 = 0;
@@ -57,29 +41,10 @@ public class GameManager : MonoBehaviour
         // load player
         playerController = FindFirstObjectByType<PlayerController>();
         playerController.CanHit = true;
-        // init controls
-        playerController.inputHandler.OnClick += OnClick;
         // init UI
         gameMode = mainManager.gameMode;
-        if (gameMode == "PlayerVsCpu")
-        {
-            player2Name = "CPU";
-        }
-        else if (gameMode == "PlayerVsPlayer")
-        {
-            player2Name = "Player 2";
-        }
-        tutorialText.text = "Player 1 \n Drag the white ball with mouse to shoot";
-        scoreText.text = "Player 1: " + scorePlayer1;
-        scoreText2.text = player2Name + ": " + scorePlayer2;
-    }
-
-    void OnClick(Vector2 postion)
-    {
-        if (tutorialText.gameObject.activeInHierarchy)
-        {
-            tutorialText.gameObject.SetActive(false);
-        }
+        uiManager = GetComponent<UIManager>();
+        uiManager.OnGameStart(gameMode);
     }
 
     void FixedUpdate()
@@ -102,8 +67,7 @@ public class GameManager : MonoBehaviour
                 }
                 else
                 {
-                    tutorialText.text = "Player " + currentPlayer + " \n Take another shot";
-                    tutorialText.gameObject.SetActive(true);
+                    uiManager.OnExtraShot(currentPlayer);
                     playerController.CanHit = true;
                 }
             }
@@ -115,11 +79,12 @@ public class GameManager : MonoBehaviour
         if (currentPlayer == 1)
         {
             scorePlayer1 += points;
-            scoreText.text = "Player 1: " + scorePlayer1;
+            uiManager.SetScore(currentPlayer, scorePlayer1);
+
         } else if (currentPlayer == 2)
         {
             scorePlayer2 += points;
-            scoreText2.text = player2Name + ": " + scorePlayer2;
+            uiManager.SetScore(currentPlayer, scorePlayer2);
         }
         scoreAdded = true;
 
@@ -148,8 +113,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            tutorialText.text = "Player " + currentPlayer + "\n Your turn";
-            tutorialText.gameObject.SetActive(true);
+            uiManager.OnNextTurn(currentPlayer);
             playerController.CanHit = true;
         }
     }
@@ -166,23 +130,13 @@ public class GameManager : MonoBehaviour
     {
         if (scorePlayer1 == scorePlayer2)
         {
-            winText.text = "Draw!";
-        } 
+            uiManager.OnGameEnd(0);
+        }
         else
         {
-            if (gameMode == "PlayerVsCpu")
-            {
-                winText.text = currentPlayer == 1 ? "You won!" : "You lose!";
-            }
-            else if (gameMode == "PlayerVsPlayer")
-            {
-                winText.text = "Player " + currentPlayer + " wins!";
-            }
+            uiManager.OnGameEnd(currentPlayer);
         }
-        tutorialText.gameObject.SetActive(false);
-        winText.gameObject.SetActive(true);
         Time.timeScale = 0f; // Pause the game
-        restartButton.gameObject.SetActive(true);
     }
 
     public void RegisterBall(BallController ball)
@@ -211,8 +165,7 @@ public class GameManager : MonoBehaviour
 
     private void CpuTurn()
     {
-        tutorialText.text = "CPU is taking a shot...";
-        tutorialText.gameObject.SetActive(true);
+        uiManager.OnCpuTurn();
         // Find optimal direction to hit
         foreach (HoleController hole in holes)
         {
