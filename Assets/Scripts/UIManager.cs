@@ -16,6 +16,8 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI winText;
     [SerializeField]
     private TextMeshProUGUI tutorialText;
+    [SerializeField]
+    private TextMeshProUGUI cameraHint;
 
     private InputHandler inputHandler;
     private string player2Name = "CPU";
@@ -25,6 +27,10 @@ public class UIManager : MonoBehaviour
     {
         inputHandler = FindAnyObjectByType<InputHandler>();
         inputHandler.OnClick += OnClick;
+        if (SystemInfo.deviceType == DeviceType.Handheld)
+        {
+            cameraHint.gameObject.SetActive(false);
+        }
     }
 
     void OnClick(Vector2 postion)
