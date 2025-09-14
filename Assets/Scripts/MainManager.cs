@@ -15,6 +15,7 @@ public class MainManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        Application.targetFrameRate = 120;
     }
 
     public void StartGame(string mode)
